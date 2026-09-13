@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCL-90 心理健康自评量表 - 专业自动计分</title>
+    <!-- 引入 Tailwind CSS 样式库 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* --- 暗夜透光窗户感背景 --- */
+        body {
+            background-color: #0b0f0e;
+            background-image: 
+                radial-gradient(circle at 15% 20%, rgba(10, 186, 181, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 85% 80%, rgba(20, 110, 110, 0.1) 0%, transparent 50%),
+                linear-gradient(0deg, transparent 24%, rgba(255, 255, 255, 0.015) 25%, rgba(255, 255, 255, 0.015) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, 0.015) 75%, rgba(255, 255, 255, 0.015) 76%, transparent 77%, transparent);
+            background-size: 100% 100%, 100% 100%, 40px 40px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: #e2e8f0;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* --- 背景发光光斑 --- */
+        .bg-spot {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(90px);
+            opacity: 0.35;
+            z-index: -1;
+            pointer-events: none;
+        }
+        .spot-1 { width: 350px; height: 350px; background: #0ABAB5; top: -50px; left: -50px; }
+        .spot-2 { width: 300px; height: 300px; background: #0891b2; bottom: -50px; right: -50px; }
+
+        /* --- 增强版蒂芙尼蓝毛玻璃卡片 --- */
+        .glass-card {
+            background: rgba(10, 186, 181, 0.08);
+            backdrop-filter: blur(35px) saturate(180%);
+            -webkit-backdrop-filter: blur(35px) saturate(180%);
+            border: 1px solid rgba(10, 186, 181, 0.25);
+            box-shadow: 
+                0 20px 40px -15px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
+            border-radius: 28px;
+        }
+
+        /* --- 选项按钮玻璃态样式 --- */
+        .glass-btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            transition: all 0.2s ease;
+        }
+        .glass-btn:hover {
+            background: rgba(10, 186, 181, 0.15);
+            border-color: rgba(10, 186, 181, 0.5);
+            transform: translateY(-1px);
+        }
+
+        /* 滚动条美化 */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.1); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb { background: rgba(10, 186, 181, 0.3); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(10, 186, 181, 0.5); }
+    </style>
+</head>
+<body class="p-4 relative overflow-x-hidden">
+
+    <!-- 背景透光光源 -->
+    <div class="bg-spot spot-1"></div>
+    <div class="bg-spot spot-2"></div>
+
+    <div id="app" class="w-full max-w-lg mx-auto">
+        
+        <!-- 1. 欢迎页 -->
+        <div id="welcome-screen" class="glass-card p-8 text-center shadow-2xl">
+            <h1 class="text-2xl font-bold mb-3 tracking-wide text-teal-300">SCL-90 心理健康自评量表</h1>
+            <p class="text-sm text-gray-300 mb-8 leading-relaxed">
+                本测验包含完整的 90 个自我评定项目。<br>请根据您<span class="text-teal-400 font-medium">最近一星期以内</span>的实际感受进行客观评分。
+            </p>
+            <button onclick="startTest()" class="w-full py-4 bg-[#0ABAB5] hover:bg-[#099e9a] text-gray-950 font-bold rounded-2xl shadow-lg transition duration-200 tracking-wide text-base">
+                开始完整测试 (90题)
+            </button>
+            <div class="mt-5 text-xs text-gray-400">心理筛查参考 · 不能替代专业诊断</div>
+        </div>
+
+        <!-- 2. 答题页（默认隐藏） -->
+        <div id="quiz-screen" class="glass-card p-8 hidden shadow-2xl">
+            <!-- 进度条 -->
+            <div class="mb-6">
+                <div class="flex justify-between text-xs text-gray-400 mb-2">
+                    <span id="progress-text" class="text-teal-300 font-medium">第 1 / 90 题</span>
+                    <span id="progress-percent">1%</span>
+                </div>
+                <div class="w-full bg-black/40 h-2 rounded-full overflow-hidden border border-white/5">
+                    <div id="progress-bar" class="bg-[#0ABAB5] h-full rounded-full transition-all duration-300" style="width: 1%"></div>
+                </div>
+            </div>
+
+            <!-- 题目区域 -->
+            <div class="mb-8 min-h-[90px] flex items-center">
+                <h2 id="question-text" class="text-lg font-medium text-white leading-snug">题目加载中...</h2>
+            </div>
+
+            <!-- 5个选项 -->
+            <div id="options-container" class="space-y-3">
+                <!-- 动态生成 -->
+            </div>
+        </div>
+
+        <!-- 3. 结果页（默认隐藏） -->
+        <div id="result-screen" class="glass-card p-8 hidden shadow-2xl">
+            <h2 class="text-2xl font-bold mb-2 text-teal-300 text-center">测评已完成</h2>
+            <p class="text-xs text-gray-400 mb-6 text-center">系统已自动计算初步量化分数与 9 大因子均分。</p>
+            
+            <!-- 总览卡片 -->
+            <div class="bg-black/30 rounded-2xl p-4 mb-6 border border-teal-500/20 flex justify-around text-center">
+                <div>
+                    <div class="text-xs text-gray-400 mb-1">总分</div>
+                    <div id="res-total" class="font-bold text-xl text-teal-300">-</div>
+                </div>
+                <div class="border-r border-white/10"></div>
+                <div>
+                    <div class="text-xs text-gray-400 mb-1">总均分</div>
+                    <div id="res-mean" class="font-bold text-xl text-teal-300">-</div>
+                </div>
+            </div>
+
+            <!-- 9大因子得分区域 -->
+            <h3 class="text-sm font-bold text-gray-300 mb-3">9 大因子均分详情：</h3>
+            <div id="factors-container" class="space-y-2 mb-6 max-h-60 overflow-y-auto pr-2 text-sm">
+                <!-- 动态生成 -->
+            </div>
+
+            <div class="text-xs text-gray-300 bg-black/30 p-3.5 rounded-2xl mb-6 leading-relaxed border border-white/5">
+                💡 <span class="font-semibold text-teal-300">温馨提示：</span>各因子均分若超过 2 分，通常提示该维度存在一定程度困扰。如需专业一对一解读，可截图保存本页联系客服。
+            </div>
+
+            <button onclick="location.reload()" class="w-full py-3 bg-white/10 hover:bg-white/20 text-white font-medium rounded-2xl transition duration-200 text-sm border border-white/10">
+                重新测试
+            </button>
+        </div>
+    </div>
+
+    <!-- JavaScript 完整计逻辑 -->
+    <script>
+        const questions = [
+            "1. 头痛", "2. 神经过敏，心中不宁", "3. 头脑中有不必要的想法或字句重现", "4. 颤抖", "5. 对旁人责备求全",
+            "6. 容易烦恼和激动", "7. 胸痛", "8. 感到害怕", "9. 所有人对你都不友好，想害你", "10. 感到自卑、不如人",
+            "11. 恶心或胃部不适", "12. 对事物感到孤立、疏远", "13. 突然感到惊恐", "14. 容易发脾气或大发雷霆", "15. 独自出门感到害怕",
+            "16. 精力下降、活动减少", "17. 认为自己毫无价值", "18. 容易哭泣或想哭", "19. 担心别人会对自己不利", "20. 感到孤独",
+            "21. 感到苦闷、压抑", "22. 对未来感到没有希望", "23. 注意力不集中", "24. 身体某部位感到麻木或刺痛", "25. 咽喉有梗塞感",
+            "26. 感到精力不足", "27. 自杀的念头", "28. 感到胃部疼痛", "29. 感到焦虑、坐立不安", "30. 感到过分紧张",
+            "31. 感觉别人能看穿自己的想法", "32. 听见别人听不到的声音", "33. 感到呼吸困难", "34. 容易出汗", "35. 感觉身体某部位软弱无力",
+            "36. 对人对事不感兴趣", "37. 感到罪恶感、内疚", "38. 感觉自己快要崩溃了", "39. 觉得别人在监视自己", "40. 难以入睡",
+            "41. 做事必须反复检查", "42. 难以做出决定", "43. 害怕空旷的场所", "44. 感觉自己的身体在变化", "45. 记性不好、健忘",
+            "46. 烦躁不安", "47. 感觉自己不属于这个世界", "48. 对异性感到害羞或不自在", "49. 经常感到胸闷", "50. 感觉别人在嘲笑自己",
+            "51. 感到被人误解", "52. 常常发怒", "53. 感到坐立难安", "54. 感到孤立无援", "55. 觉得生活没有意义",
+            "56. 容易激动", "57. 害怕社交场合", "58. 感觉身体疼痛不适", "59. 常常感到焦虑不安", "60. 感觉头重脚轻",
+            "61. 感觉别人在控制你的行为", "62. 脑子里有不好的画面", "63. 感觉自己无能", "64. 对周围一切感到陌生", "65. 经常感到疲惫",
+            "66. 感到内心空虚", "67. 害怕独自一人", "68. 感觉别人对你有敌意", "69. 常常想哭", "70. 感觉注意力无法集中",
+            "71. 感觉四肢发冷或发热", "72. 睡眠质量差、易醒", "73. 感觉自己做不好任何事", "74. 害怕公开讲话", "75. 感觉生活充满压力",
+            "76. 感到心情沉重", "77. 常常胡思乱想", "78. 感觉自己很失败", "79. 害怕面对困难", "80. 感觉精力耗尽",
+            "81. 常常感到委屈", "82. 感觉前途黯淡", "83. 对生活失去热情", "84. 常常无缘无故叹气", "85. 感觉压力无法排解",
+            "86. 常常感到沮丧", "87. 对未来感到迷茫", "88. 感觉自己无法应对生活", "89. 常常感到身心俱疲", "90. 感觉活着很累"
+        ];
+
+        const factorMap = {
+            "躯体化": [0, 6, 11, 23, 24, 26, 32, 33, 34, 39, 47, 48],
+            "强迫症状": [2, 8, 9, 27, 37, 40, 41, 44, 51, 59],
+            "人际关系敏感": [5, 20, 35, 36, 42, 52, 55, 60, 68],
+            "抑郁": [4, 13, 15, 21, 22, 25, 28, 29, 30, 50, 64, 72, 75, 78],
+            "焦虑": [1, 12, 16, 18, 31, 38, 45, 46, 54, 76],
+            "敌对": [3, 10, 23, 56, 62, 66],
+            "恐怖": [14, 24, 43, 49, 67, 73, 79],
+            "偏执": [8, 17, 49, 61, 71, 77],
+            "精神病性": [6, 19, 30, 62, 69, 82, 86]
+        };
+
+        let currentIdx = 0;
+        let userAnswers = new Array(questions.length).fill(0);
+
+        const optionLabels = [
+            { score: 1, text: "1分 - 从无" },
+            { score: 2, text: "2分 - 轻度" },
+            { score: 3, text: "3分 - 中度" },
+            { score: 4, text: "4分 - 偏重" },
+            { score: 5, text: "5分 - 严重" }
+        ];
+
+        function startTest() {
+            document.getElementById('welcome-screen').classList.add('hidden');
+            document.getElementById('quiz-screen').classList.remove('hidden');
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            if (currentIdx >= questions.length) {
+                showResult();
+                return;
+            }
+
+            const total = questions.length;
+            document.getElementById('progress-text').innerText = `第 ${currentIdx + 1} / ${total} 题`;
+            const percent = Math.round(((currentIdx + 1) / total) * 100);
+            document.getElementById('progress-percent').innerText = percent + "%";
+            document.getElementById('progress-bar').style.width = percent + "%";
+
+            document.getElementById('question-text').innerText = questions[currentIdx];
+
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+            
+            optionLabels.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = "glass-btn w-full text-left py-3.5 px-4 rounded-xl text-sm font-medium text-gray-200 shadow-sm";
+                btn.innerText = opt.text;
+                btn.onclick = () => selectOption(opt.score);
+                container.appendChild(btn);
+            });
+        }
+
+        function selectOption(score) {
+            userAnswers[currentIdx] = score;
+            currentIdx++;
+            loadQuestion();
+        }
+
+        function showResult() {
+            document.getElementById('quiz-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.remove('hidden');
+
+            let totalScore = userAnswers.reduce((a, b) => a + b, 0);
+            let totalMean = (totalScore / 90).toFixed(2);
+
+            document.getElementById('res-total').innerText = totalScore + " 分";
+            document.getElementById('res-mean').innerText = totalMean;
+
+            const factorsContainer = document.getElementById('factors-container');
+            factorsContainer.innerHTML = '';
+
+            for (let factorName in factorMap) {
+                let indices = factorMap[factorName];
+                let sum = indices.reduce((acc, idx) => acc + userAnswers[idx], 0);
+                let mean = (sum / indices.length).toFixed(2);
+
+                let badgeColor = mean >= 2.0 ? "text-red-400 bg-red-950/30 border-red-900/40" : "text-teal-300 bg-black/20 border-teal-500/10";
+
+                let row = document.createElement('div');
+                row.className = `flex justify-between items-center p-3 rounded-xl border ${badgeColor}`;
+                row.innerHTML = `
+                    <span class="text-gray-200 font-medium">${factorName}</span>
+                    <span class="font-bold">${mean} 分</span>
+                `;
+                factorsContainer.appendChild(row);
+            }
+        }
+    </script>
+</body>
+</html>
